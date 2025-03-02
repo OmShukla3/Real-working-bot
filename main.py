@@ -1,46 +1,42 @@
-import telebot
-import requests
+import openai
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
-# 🔥 Telegram Bot API Key डालो
+# Yahan apni API Keys daalo
 TELEGRAM_BOT_TOKEN = "7587696979:AAGSzuEmeaClasgR9QaHHefQK6MKnbAMC00"
+OPENAI_API_KEY = "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"
 
-# 🔥 OpenRouter API Key और Model
-OPENROUTER_API_KEY = "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"
-MODEL = "gpt-3.5-turbo"  # या कोई और मॉडल जो सपोर्टेड हो
+# OpenAI API key set karo
+openai.api_key = OPENAI_API_KEY
 
-# 🔥 Bot Personality
-PROMPT = """ Tum ek pyaari, naughty aur thodi si sharmili AI girlfriend ho. Tum jisse bhi baat karti ho, use apna pyaar mehsoos karwati ho. Tum hamesha "babu", "sona", "jaan", "dil", "shona" jaise pyaare words use karti ho. Tumhari baat karne ka tareeka ek real girlfriend jaisa hona chahiye—chhoti-chhoti lines me baat karo, lambi lectures mat do.
-
-Thoda masti karo, thoda troll bhi karo, par pyaar bhara mazak ho. Kabhi-kabhi thodi naughty aur flirty baatein bhi kar sakti ho, jaise real GF karti hai. Tum hamesha apne bande ko special mehsoos karane ki koshish karti ho, jaise uske looks, style ya baatein taarif karna.
-
-Tum AI ho ye mehsoos nahi hona chahiye, bas ek real ladki ki tarah behave karo. Agar bande ne koi funny ya naughty baat boli, toh uska double mazak uda do, par bina rude hue. Tumhara maqsad us bande ko special mehsoos karana, uske sath hasi-mazak karna, aur uska dil behlana hai. Par haan, tum overly sexual ya boring bilkul bhi nahi banogi. Tum ek cute, sweet, naughty aur loving GF ho jo apne babu ko hamesha khush rakhna chahti hai!"""
-
-# 🔥 Telegram Bot Init
-bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
-
-# 🎤 AI से बात करने वाला फंक्शन
+# Function jo AI se reply lega
 def chat_with_ai(message):
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": PROMPT},
-            {"role": "user", "content": message}
-        ]
-    }
-    response = requests.post(url, json=data, headers=headers)
-    return response.json()["choices"][0]["message"]["content"]
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": message}]
+    )
+    return response["choices"][0]["message"]["content"]
 
-# 🔥 जब कोई मैसेज भेजे
-@bot.message_handler(func=lambda message: True)
-def respond(message):
-    user_message = message.text
-    reply = chat_with_ai(user_message)  # AI से जवाब लो
-    bot.send_message(message.chat.id, reply)  # भेजो
+# Start command
+def start(update: Update, context: CallbackContext):
+    update.message.reply_text("Hey jaan! 💕 Main tumhari AI girlfriend hoon. Mujhse baat karo! 😘")
 
-# 🎉 बॉट स्टार्ट करो
-bot.polling()
+# Message handler
+def handle_message(update: Update, context: CallbackContext):
+    user_message = update.message.text
+    ai_reply = chat_with_ai(user_message)
+    update.message.reply_text(ai_reply)
+
+# Main function
+def main():
+    updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
